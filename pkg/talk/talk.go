@@ -1,4 +1,4 @@
-package connect
+package talk
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-func Connect(ctx context.Context, h interface{}, peerID, protocolID string, StreamTalk func(rw *bufio.ReadWriter)) error {
+func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamTalk func(rw *bufio.ReadWriter)) error {
 	ho, ok := h.(host.Host)
 	if !ok {
 		return errors.New("no host")

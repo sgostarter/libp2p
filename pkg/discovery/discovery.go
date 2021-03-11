@@ -38,7 +38,7 @@ type ServerParam struct {
 
 func doBootstrap(ctx context.Context, h host.Host, bootstrapPeers []string,
 	advertiseNS string) (*discovery.RoutingDiscovery, error) {
-	kademliaDHT, err := dht.New(ctx, h)
+	kademliaDHT, err := dht.New(ctx, h, dht.Mode(dht.ModeAutoServer))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func doBootstrap(ctx context.Context, h host.Host, bootstrapPeers []string,
 		go func() {
 			defer wg.Done()
 			if err := h.Connect(ctx, *peerInfo); err != nil {
-				loge.Warnf(ctx, "connect %v failed: %v", peerInfo.ID.Pretty(), err)
+				loge.Warnf(ctx, "talk %v failed: %v", peerInfo.ID.Pretty(), err)
 			} else {
 				loge.Infof(ctx, "Connection established with bootstrap node: %v", peerInfo)
 			}

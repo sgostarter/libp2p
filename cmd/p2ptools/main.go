@@ -11,8 +11,8 @@ import (
 	"github.com/jiuzhou-zhao/go-fundamental/loge"
 	"github.com/sgostarter/liblog"
 	"github.com/sgostarter/libp2p/pkg/bootstrap"
-	"github.com/sgostarter/libp2p/pkg/connect"
 	"github.com/sgostarter/libp2p/pkg/discovery"
+	"github.com/sgostarter/libp2p/pkg/talk"
 )
 
 type discoveryObserver struct {
@@ -25,6 +25,7 @@ type discoveryObserver struct {
 func (ob *discoveryObserver) NewHost(h interface{}, hID string) {
 	ob.h = h
 	ob.hID = hID
+	fmt.Println("my host id is ", hID)
 }
 
 func (ob *discoveryObserver) StreamTalk(rw *bufio.ReadWriter) {
@@ -69,7 +70,7 @@ func (ob *discoveryObserver) HostID() string {
 }
 
 func (ob *discoveryObserver) CheckPeer(peerID, protocolID string) {
-	err := connect.Connect(context.Background(), ob.h, peerID, protocolID, func(rw *bufio.ReadWriter) {
+	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *bufio.ReadWriter) {
 		_, err := rw.WriteString(fmt.Sprintf("%s-ping\n", ob.hID))
 		if err != nil {
 			loge.Fatalf(nil, "write string failed: %w", err)
@@ -96,8 +97,8 @@ func main() {
 	var ns string
 	flag.StringVar(&ns, "ns", "TestAdvertiseNS", "advertise name space")
 
-	var bootstrapPeer string
-	flag.StringVar(&bootstrapPeer, "bspeer", "/ip4/172.28.89.156/tcp/5000/p2p/QmfAwEcZ9RpvXhRL1AWg6BSDBuvtzY2qw45KGNx6fZatBR", "boot strap peer")
+	var bootstrapPeers string
+	flag.StringVar(&bootstrapPeers, "bspeer", "/ip4/172.28.89.156/tcp/4999/p2p/QmfAwEcZ9RpvXhRL1AWg6BSDBuvtzY2qw45KGNx6fZatBR", "boot strap peer")
 
 	var protocolID string
 	flag.StringVar(&protocolID, "pid", "testProtocolID/1.0.0", "protocol id")
@@ -117,7 +118,7 @@ func main() {
 		go func() {
 			err := bootstrap.RunServer(context.Background(), bootstrap.ServerParam{
 				HostParam: bootstrap.HostParam{
-					ListenPort:  port,
+					ListenPort:  port - 1,
 					UseIdentity: true,
 					PriKeyFile:  "priKey.dat",
 				},
@@ -133,12 +134,12 @@ func main() {
 	go func() {
 		_ = discovery.RunServer(context.Background(), discovery.ServerParam{
 			HostParam: bootstrap.HostParam{
-				ListenPort:  port + 1,
+				ListenPort:  port,
 				UseIdentity: false,
 				PriKeyFile:  "",
 			},
 			ProtocolID:       protocolID,
-			BootstrapPeers:   []string{bootstrapPeer},
+			BootstrapPeers:   strings.Split(bootstrapPeers, ";"),
 			AdvertiseNS:      ns,
 			MinCheckInterval: 0,
 		}, ob)
