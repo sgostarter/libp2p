@@ -1,7 +1,6 @@
 package discovery
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"sync"
@@ -18,11 +17,12 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/sgostarter/libp2p/pkg/bootstrap"
+	"github.com/sgostarter/libp2p/pkg/p2pio"
 )
 
 type Observer interface {
 	NewHost(h interface{}, hID string)
-	StreamTalk(rw *bufio.ReadWriter)
+	StreamTalk(rw *p2pio.ReadWriteCloser)
 	OnNewPeerStart()
 	OnNewPeer(peerID string)
 	OnNewPeerFinish()
@@ -105,7 +105,7 @@ func RunServer(ctx context.Context, param ServerParam, ob Observer) error {
 		defer func() {
 			_ = stream.Close()
 		}()
-		ob.StreamTalk(bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)))
+		ob.StreamTalk(p2pio.NewReadWriteCloser(stream))
 	})
 
 	routingDiscovery, err := doBootstrap(ctx, h, param.BootstrapPeers, param.AdvertiseNS)

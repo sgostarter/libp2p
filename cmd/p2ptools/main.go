@@ -12,6 +12,7 @@ import (
 	"github.com/sgostarter/liblog"
 	"github.com/sgostarter/libp2p/pkg/bootstrap"
 	"github.com/sgostarter/libp2p/pkg/discovery"
+	"github.com/sgostarter/libp2p/pkg/p2pio"
 	"github.com/sgostarter/libp2p/pkg/talk"
 )
 
@@ -28,7 +29,7 @@ func (ob *discoveryObserver) NewHost(h interface{}, hID string) {
 	fmt.Println("my host id is ", hID)
 }
 
-func (ob *discoveryObserver) StreamTalk(rw *bufio.ReadWriter) {
+func (ob *discoveryObserver) StreamTalk(rw *p2pio.ReadWriteCloser) {
 	req, err := rw.ReadString('\n')
 	if err != nil {
 		loge.Errorf(nil, "read req failed: %v", err)
@@ -70,7 +71,7 @@ func (ob *discoveryObserver) HostID() string {
 }
 
 func (ob *discoveryObserver) CheckPeer(peerID, protocolID string) {
-	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *bufio.ReadWriter) {
+	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *p2pio.ReadWriteCloser) {
 		_, err := rw.WriteString(fmt.Sprintf("%s-ping\n", ob.hID))
 		if err != nil {
 			loge.Fatalf(nil, "write string failed: %w", err)

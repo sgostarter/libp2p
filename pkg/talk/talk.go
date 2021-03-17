@@ -1,16 +1,16 @@
 package talk
 
 import (
-	"bufio"
 	"context"
 	"errors"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/sgostarter/libp2p/pkg/p2pio"
 )
 
-func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamTalk func(rw *bufio.ReadWriter)) error {
+func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamTalk func(rw *p2pio.ReadWriteCloser)) error {
 	ho, ok := h.(host.Host)
 	if !ok {
 		return errors.New("no host")
@@ -29,6 +29,6 @@ func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamT
 		_ = stream.Close()
 	}()
 
-	StreamTalk(bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream)))
+	StreamTalk(p2pio.NewReadWriteCloser(stream))
 	return nil
 }
