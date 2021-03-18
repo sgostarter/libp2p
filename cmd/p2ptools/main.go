@@ -29,7 +29,7 @@ func (ob *discoveryObserver) NewHost(h interface{}, hID string) {
 	fmt.Println("my host id is ", hID)
 }
 
-func (ob *discoveryObserver) StreamTalk(rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
+func (ob *discoveryObserver) StreamTalk(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
 	defer func() {
 		chExit <- true
 	}()
@@ -74,7 +74,7 @@ func (ob *discoveryObserver) HostID() string {
 }
 
 func (ob *discoveryObserver) CheckPeer(peerID, protocolID string) {
-	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
+	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
 		defer func() {
 			chExit <- true
 		}()

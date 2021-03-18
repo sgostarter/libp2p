@@ -11,7 +11,7 @@ import (
 )
 
 func Talk(ctx context.Context, h interface{}, peerID, protocolID string,
-	StreamTalk func(rw *p2pio.ReadWriteCloser, chExit chan interface{})) error {
+	StreamTalk func(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{})) error {
 	ho, ok := h.(host.Host)
 	if !ok {
 		return errors.New("no host")
@@ -31,7 +31,38 @@ func Talk(ctx context.Context, h interface{}, peerID, protocolID string,
 	}()
 
 	chExit := make(chan interface{})
-	StreamTalk(p2pio.NewReadWriteCloser(stream), chExit)
+	StreamTalk(peerID, p2pio.NewReadWriteCloser(stream), chExit)
 	<-chExit
+	return nil
+}
+
+func Start(ctx context.Context, h interface{}, peerID, protocolID string,
+	StreamTalk func(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{})) error {
+	ho, ok := h.(host.Host)
+	if !ok {
+		return errors.New("no host")
+	}
+
+	p, err := peer.Decode(peerID)
+	if err != nil {
+		return err
+	}
+
+	stream, err := ho.NewStream(ctx, p, protocol.ID(protocolID))
+	if err != nil {
+		return err
+	}
+
+	chExit := make(chan interface{})
+	StreamTalk(peerID, p2pio.NewReadWriteCloser(stream), chExit)
+
+	go func() {
+		defer func() {
+			_ = stream.Close()
+		}()
+
+		<-chExit
+	}()
+
 	return nil
 }

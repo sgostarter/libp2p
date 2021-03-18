@@ -12,4 +12,5 @@ require (
 	github.com/libp2p/go-libp2p-transport-upgrader v0.4.0
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/sgostarter/liblog v0.0.0-20210204094833-500d17ae3c96
+	google.golang.org/protobuf v1.25.0
 )

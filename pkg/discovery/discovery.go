@@ -22,7 +22,7 @@ import (
 
 type Observer interface {
 	NewHost(h interface{}, hID string)
-	StreamTalk(rw *p2pio.ReadWriteCloser, chExit chan interface{})
+	StreamTalk(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{})
 	OnNewPeerStart()
 	OnNewPeer(peerID string)
 	OnNewPeerFinish()
@@ -106,7 +106,7 @@ func RunServer(ctx context.Context, param ServerParam, ob Observer) error {
 			_ = stream.Close()
 		}()
 		chExit := make(chan interface{})
-		ob.StreamTalk(p2pio.NewReadWriteCloser(stream), chExit)
+		ob.StreamTalk(stream.Conn().RemotePeer().Pretty(), p2pio.NewReadWriteCloser(stream), chExit)
 		<-chExit
 	})
 

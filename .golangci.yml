@@ -51,6 +51,7 @@ linters:
     - wrapcheck
     - exhaustivestruct
     - interfacer
+    - nakedret
 
 run:
   skip-dirs:

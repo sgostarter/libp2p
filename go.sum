@@ -216,6 +216,7 @@ github.com/jbenet/goprocess v0.1.4 h1:DRGOFReOMqqDNXwW70QkacFW0YN9QnwLV0Vqk+3oU0
 github.com/jbenet/goprocess v0.1.4/go.mod h1:5yspPrukOVuOLORacaBi858NqyClJPQxYZlqdZVfqY4=
 github.com/jessevdk/go-flags v0.0.0-20141203071132-1679536dcc89/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
+github.com/jiuzhou-zhao/blockchain.go v0.0.0-20210310030349-f6ef5282369d h1:syli+9hLv6dPdUxpdYwxTk/ZIC+qe1KafO3FRyZ2qKo=
 github.com/jiuzhou-zhao/go-fundamental v0.0.5-0.20210204084503-4e072abece93/go.mod h1:fuEdfF1u0V36rcNHT+zKlscGJ4QzGxQjuoMczt/+ols=
 github.com/jiuzhou-zhao/go-fundamental v0.0.5 h1:XCPcuCNeGXV+O9/nahznyMVEYFjE1IDLfZz2+S3zORs=
 github.com/jiuzhou-zhao/go-fundamental v0.0.5/go.mod h1:3QjvbH4uXGw/sunJlHYOvnNwog2PBAiQAPAKRkoHugQ=
