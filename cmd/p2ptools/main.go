@@ -29,7 +29,10 @@ func (ob *discoveryObserver) NewHost(h interface{}, hID string) {
 	fmt.Println("my host id is ", hID)
 }
 
-func (ob *discoveryObserver) StreamTalk(rw *p2pio.ReadWriteCloser) {
+func (ob *discoveryObserver) StreamTalk(rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
+	defer func() {
+		chExit <- true
+	}()
 	req, err := rw.ReadString('\n')
 	if err != nil {
 		loge.Errorf(nil, "read req failed: %v", err)
@@ -71,7 +74,10 @@ func (ob *discoveryObserver) HostID() string {
 }
 
 func (ob *discoveryObserver) CheckPeer(peerID, protocolID string) {
-	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *p2pio.ReadWriteCloser) {
+	err := talk.Talk(context.Background(), ob.h, peerID, protocolID, func(rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
+		defer func() {
+			chExit <- true
+		}()
 		_, err := rw.WriteString(fmt.Sprintf("%s-ping\n", ob.hID))
 		if err != nil {
 			loge.Fatalf(nil, "write string failed: %w", err)

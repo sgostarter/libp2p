@@ -10,7 +10,8 @@ import (
 	"github.com/sgostarter/libp2p/pkg/p2pio"
 )
 
-func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamTalk func(rw *p2pio.ReadWriteCloser)) error {
+func Talk(ctx context.Context, h interface{}, peerID, protocolID string,
+	StreamTalk func(rw *p2pio.ReadWriteCloser, chExit chan interface{})) error {
 	ho, ok := h.(host.Host)
 	if !ok {
 		return errors.New("no host")
@@ -29,6 +30,8 @@ func Talk(ctx context.Context, h interface{}, peerID, protocolID string, StreamT
 		_ = stream.Close()
 	}()
 
-	StreamTalk(p2pio.NewReadWriteCloser(stream))
+	chExit := make(chan interface{})
+	StreamTalk(p2pio.NewReadWriteCloser(stream), chExit)
+	<-chExit
 	return nil
 }
