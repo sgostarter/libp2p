@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -136,6 +137,10 @@ func (mh *messageHelper) IsPongMessage(pMsg peer.Message) bool {
 }
 
 func main() {
+	var port int
+	flag.IntVar(&port, "port", 5000, "port")
+	flag.Parse()
+
 	logger, err := liblog.NewZapLogger()
 	if err != nil {
 		panic(err)
@@ -147,7 +152,7 @@ func main() {
 			AdvertiseNameSpace: "chat_hoho_992121s1",
 			BootstrapPeers:     nil,
 			ProtocolID:         "chat.chat.chat",
-			ListenPort:         0,
+			ListenPort:         port,
 			MaxConnectedPeers:  0,
 			KeepAliveDuration:  time.Minute,
 		},
