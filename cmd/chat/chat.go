@@ -120,7 +120,7 @@ func (mh *messageHelper) CreatePingMessage(peerID string) (peer.Message, error) 
 func (mh *messageHelper) CreatePongMessage(pMsg peer.Message) (peer.Message, error) {
 	return &pongMessage{
 		baseMessage: baseMessage{
-			ID:   0x01,
+			ID:   0x02,
 			Text: "PONG",
 		},
 	}, nil
@@ -149,7 +149,7 @@ func main() {
 
 	cfg := peer.Config{
 		P2PConfig: peer.P2PConfig{
-			AdvertiseNameSpace: "chat_hoho_992121s1",
+			AdvertiseNameSpace: "chat_demo_4zjz",
 			BootstrapPeers:     nil,
 			ProtocolID:         "chat.chat.chat",
 			ListenPort:         port,

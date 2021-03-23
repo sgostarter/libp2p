@@ -84,6 +84,15 @@ func (impl *peerProxyImpl) rwRoutine() {
 		impl.ch2Write <- pingMsg
 	}
 
+	fnSendPong := func(pingMsg Message) {
+		pongMsg, err := impl.messageHelper.CreatePongMessage(pingMsg)
+		if err != nil {
+			loge.Errorf(impl.ctx, "peer %v create pong message failed: %v", impl.peerID, err)
+			return
+		}
+		impl.ch2Write <- pongMsg
+	}
+
 	loop := true
 	for loop {
 		select {
@@ -102,8 +111,9 @@ func (impl *peerProxyImpl) rwRoutine() {
 			}
 			_ = impl.rwc.Flush()
 		case msg := <-chMsgIncoming:
+			loge.Infof(nil, "message incoming: %v", msg)
 			if impl.messageHelper.IsPingMessage(msg) {
-				fnSendPing()
+				fnSendPong(msg)
 			} else if impl.messageHelper.IsPongMessage(msg) {
 				impl.lastTouch = time.Now()
 				timeoutChecker.Reset(10 * time.Minute)
