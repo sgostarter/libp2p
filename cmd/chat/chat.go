@@ -59,6 +59,18 @@ type pongMessage struct {
 
 type textMessage struct {
 	baseMessage
+	Receiver string
+}
+
+func (msg *textMessage) Bytes() []byte {
+	var buf bytes.Buffer
+	buf.WriteByte(msg.MsgID)
+
+	md, _ := json.Marshal(msg)
+	d := make([]byte, 1024)
+	copy(d, buf.Bytes())
+	copy(d[1:], md)
+	return d
 }
 
 type nickNameSetMessage struct {
@@ -86,6 +98,7 @@ func (msg *nickNameSetMessage) Bytes() []byte {
 //
 //
 type messageArrivedObserver struct {
+	peerID    string
 	nickNames map[string]string
 }
 
@@ -93,6 +106,10 @@ func newMessageArrivedObserver() *messageArrivedObserver {
 	return &messageArrivedObserver{
 		nickNames: make(map[string]string),
 	}
+}
+
+func (ob *messageArrivedObserver) setPeerID(peerID string) {
+	ob.peerID = peerID
 }
 
 func (ob *messageArrivedObserver) getNickName(peerID string) string {
@@ -104,7 +121,14 @@ func (ob *messageArrivedObserver) getNickName(peerID string) string {
 
 func (ob *messageArrivedObserver) OnDataArrived(peerID string, msg peer.Message) {
 	if textMsg, ok := msg.(*textMessage); ok {
-		fmt.Printf("%v talk to me: %v\n", ob.getNickName(peerID), textMsg.Text)
+		to := textMsg.Receiver
+		if textMsg.Receiver == ob.peerID {
+			to = "me"
+		}
+		if to == "" {
+			to = "all"
+		}
+		fmt.Printf("%v talk to %v: %v\n", ob.getNickName(peerID), to, textMsg.Text)
 	} else if nickNameSetMsg, ok := msg.(*nickNameSetMessage); ok {
 		ob.nickNames[nickNameSetMsg.PeerID] = nickNameSetMsg.NickName
 	}
@@ -231,6 +255,9 @@ func main() {
 	}
 	peersProxy := peer.NewPeersProxy(context.Background(), &cfg)
 
+	peersProxy.Wait4Ready()
+	ob.setPeerID(peersProxy.GetID())
+
 	fnReadString := func(r *bufio.Reader) string {
 		fmt.Print("\n> ")
 		cmd, err := r.ReadString('\n')
@@ -282,10 +309,10 @@ func main() {
 			if receiver == "all" {
 				receiver = ""
 			}
-			peersProxy.DoRequest(receiver, &textMessage{baseMessage{
+			peersProxy.DoRequest(receiver, &textMessage{baseMessage: baseMessage{
 				MsgID: 0x03,
 				Text:  text,
-			}})
+			}, Receiver: receiver})
 		}
 	}
 }

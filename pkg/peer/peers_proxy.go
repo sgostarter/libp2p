@@ -13,6 +13,7 @@ type PeersProxy interface {
 	DoRequest(peerID string, req Message)
 	ListPeers(func(peerIDs []string))
 	GetID() string
+	Wait4Ready()
 }
 
 type peerInfo struct {
@@ -31,6 +32,7 @@ func NewPeersProxy(ctx context.Context, cfg *Config) PeersProxy {
 		messageHelper:    cfg.MessageHelper,
 		pmr:              newPMR(),
 		pr:               newPR(),
+		chInitComplete:   make(chan error, 10),
 	}
 
 	go peersProxy.p2pDiscoveryRoutine()
@@ -52,8 +54,9 @@ type peersProxyImpl struct {
 	pr *PR
 
 	// p2p
-	host   interface{}
-	hostID string
+	host           interface{}
+	hostID         string
+	chInitComplete chan error
 
 	cachedPeerIDs []string
 }
@@ -113,12 +116,21 @@ func (impl *peersProxyImpl) GetID() string {
 	return impl.hostID
 }
 
+func (impl *peersProxyImpl) Wait4Ready() {
+	if impl.hostID != "" {
+		return
+	}
+	<-impl.chInitComplete
+	return
+}
+
 //
 // discovery.Observer
 //
 func (impl *peersProxyImpl) NewHost(h interface{}, hID string) {
 	impl.host = h
 	impl.hostID = hID
+	impl.chInitComplete <- nil
 }
 
 func (impl *peersProxyImpl) StreamTalk(peerID string, rw *p2pio.ReadWriteCloser, chExit chan interface{}) {
