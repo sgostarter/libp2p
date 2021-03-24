@@ -45,7 +45,7 @@ func newPeerProxy(ctx context.Context, peerID string, rwc *p2pio.ReadWriteCloser
 		messageArrivedOb: messageArrivedOb,
 		messageHelper:    messageHelper,
 		lastTouch:        time.Now(),
-		ch2Write:         make(chan Message, 100),
+		ch2Write:         make(chan Message, 2),
 		keepAlive:        keepAlive,
 	}
 	go impl.rwRoutine()
@@ -54,7 +54,7 @@ func newPeerProxy(ctx context.Context, peerID string, rwc *p2pio.ReadWriteCloser
 }
 
 func (impl *peerProxyImpl) rwRoutine() {
-	chMsgIncoming := make(chan Message, 100)
+	chMsgIncoming := make(chan Message, 2)
 	chReadError := make(chan error, 1)
 
 	go func() {

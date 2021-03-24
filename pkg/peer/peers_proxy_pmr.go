@@ -28,8 +28,8 @@ func newPMR() *PMR {
 	return &PMR{
 		peers:             make(map[string]*peerInfo),
 		peerIdleIDs:       make(map[string]interface{}),
-		chPeerClosed:      make(chan PeerProxy, 100),
-		chPeersListUpdate: make(chan []string, 100),
+		chPeerClosed:      make(chan PeerProxy, 2),
+		chPeersListUpdate: make(chan []string, 2),
 		chNewActivePeer:   make(chan *pmrNewActivePeer),
 		chDoSlowRequest:   make(chan *prRequest),
 	}
@@ -47,11 +47,14 @@ func (impl *peersProxyImpl) peersManagerRoutine() {
 		case <-impl.ctx.Done():
 			loop = false
 		case <-idleTicker.C:
+			loge.Debug(nil, "peersManagerRoutine regular peers begin")
 			impl.pmrRegularPeers()
+			loge.Debug(nil, "peersManagerRoutine regular peers end")
 		case peerIDs := <-impl.pmr.chPeersListUpdate:
 			if len(impl.pmr.chPeersListUpdate) > 0 {
 				continue
 			}
+			loge.Debug(nil, "peersManagerRoutine list update begin")
 			newPeerIDs := make(map[string]interface{})
 			for _, peerID := range peerIDs {
 				newPeerIDs[peerID] = true
@@ -69,17 +72,25 @@ func (impl *peersProxyImpl) peersManagerRoutine() {
 			impl.pmrRegularPeers()
 
 			idleTicker.Reset(idleTimeout)
+
+			loge.Debug(nil, "peersManagerRoutine list update end")
 		case peer := <-impl.pmr.chPeerClosed:
+			loge.Debug(nil, "peersManagerRoutine peer close begin")
 			if oPeer, ok := impl.pmr.peers[peer.GetPeerID()]; ok {
 				if oPeer.peer != peer {
 					continue
 				}
 			}
 			impl.pmrRemovePeer(peer.GetPeerID())
+			loge.Debug(nil, "peersManagerRoutine peer close end")
 		case aPeer := <-impl.pmr.chNewActivePeer:
+			loge.Debug(nil, "peersManagerRoutine new active peer begin")
 			impl.pmrAddPeer(aPeer.peerID, aPeer.chExit, aPeer.rw)
+			loge.Debug(nil, "peersManagerRoutine new active peer end")
 		case req := <-impl.pmr.chDoSlowRequest:
+			loge.Debug(nil, "peersManagerRoutine do slow request begin")
 			impl.pmrDoRequest(req)
+			loge.Debug(nil, "peersManagerRoutine do slow request end")
 		}
 	}
 

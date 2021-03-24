@@ -27,11 +27,11 @@ type PR struct {
 func newPR() *PR {
 	return &PR{
 		peers:           make(map[string]PeerProxy),
-		chAddPeer:       make(chan PeerProxy, 100),
-		chDelPeer:       make(chan PeerProxy, 100),
+		chAddPeer:       make(chan PeerProxy, 2),
+		chDelPeer:       make(chan PeerProxy, 2),
 		chUpdateIdleIDs: make(chan []string),
-		chDoRequest:     make(chan *prRequest, 100),
-		chDoAny:         make(chan func(), 100),
+		chDoRequest:     make(chan *prRequest, 2),
+		chDoAny:         make(chan func(), 2),
 		ec:              tools.NewExistsCheckerWithMaxSize(99999999),
 	}
 }
@@ -44,15 +44,25 @@ func (impl *peersProxyImpl) peersRoutine() {
 		case <-impl.ctx.Done():
 			loop = false
 		case peer := <-impl.pr.chAddPeer:
+			loge.Debug(nil, "peersRoutine add peer begin")
 			impl.prAddPeer(peer)
+			loge.Debug(nil, "peersRoutine add peer end")
 		case peer := <-impl.pr.chDelPeer:
+			loge.Debug(nil, "peersRoutine del peer begin")
 			impl.prDelPeer(peer)
+			loge.Debug(nil, "peersRoutine del peer end")
 		case req := <-impl.pr.chDoRequest:
+			loge.Debug(nil, "peersRoutine do request begin")
 			impl.prDoRequest(req)
+			loge.Debug(nil, "peersRoutine do request end")
 		case fn := <-impl.pr.chDoAny:
+			loge.Debug(nil, "peersRoutine do any begin")
 			fn()
+			loge.Debug(nil, "peersRoutine do any end")
 		case idleIDs := <-impl.pr.chUpdateIdleIDs:
+			loge.Debug(nil, "peersRoutine update idle peer ids begin")
 			impl.prUpdateIdlePeerIDs(idleIDs)
+			loge.Debug(nil, "peersRoutine update idle peer ids end")
 		}
 	}
 	loge.Info(impl.ctx, "peer routine leave")

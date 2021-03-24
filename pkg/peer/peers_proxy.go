@@ -121,7 +121,6 @@ func (impl *peersProxyImpl) Wait4Ready() {
 		return
 	}
 	<-impl.chInitComplete
-	return
 }
 
 //
