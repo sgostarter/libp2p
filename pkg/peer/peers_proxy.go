@@ -80,6 +80,14 @@ func (impl *peersProxyImpl) PeerClosed(peer PeerProxy) {
 }
 
 func (impl *peersProxyImpl) OnDataArrived(peer PeerProxy, req Message) {
+	if req.GossipFlag() {
+		if !impl.pr.ec.Exists(req.ID()) {
+			impl.DoRequest("", req)
+			loge.Info(nil, "gossip request to other")
+		} else {
+			loge.Info(nil, "gossip already request")
+		}
+	}
 	impl.messageArrivedOb.OnDataArrived(peer.GetPeerID(), req)
 }
 

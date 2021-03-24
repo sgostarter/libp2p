@@ -1,6 +1,9 @@
 package peer
 
-import "github.com/jiuzhou-zhao/go-fundamental/loge"
+import (
+	"github.com/jiuzhou-zhao/go-fundamental/loge"
+	"github.com/jiuzhou-zhao/go-fundamental/structs/tools"
+)
 
 type prRequest struct {
 	peerID     string
@@ -17,6 +20,8 @@ type PR struct {
 	chUpdateIdleIDs chan []string
 	chDoRequest     chan *prRequest
 	chDoAny         chan func()
+
+	ec tools.ExistsChecker
 }
 
 func newPR() *PR {
@@ -27,6 +32,7 @@ func newPR() *PR {
 		chUpdateIdleIDs: make(chan []string),
 		chDoRequest:     make(chan *prRequest, 100),
 		chDoAny:         make(chan func(), 100),
+		ec:              tools.NewExistsCheckerWithMaxSize(99999999),
 	}
 }
 
@@ -59,6 +65,9 @@ func (impl *peersProxyImpl) prUpdateIdlePeerIDs(ids []string) {
 func (impl *peersProxyImpl) prDoRequest(req *prRequest) {
 	if req.peerID == "" {
 		for _, peer := range impl.pr.peers {
+			if req.msg.GossipFlag() {
+				impl.pr.ec.Add(req.msg.ID())
+			}
 			peer.DoRequest(req.msg)
 		}
 		return

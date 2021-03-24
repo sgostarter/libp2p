@@ -68,6 +68,7 @@ func (impl *peerProxyImpl) rwRoutine() {
 				loge.Errorf(impl.ctx, "peer %v read failed: %v", impl.peerID, err)
 				break
 			}
+			loge.Debugf(nil, "-- receive: %v", msg)
 			chMsgIncoming <- msg
 		}
 	}()
@@ -110,8 +111,8 @@ func (impl *peerProxyImpl) rwRoutine() {
 				break
 			}
 			_ = impl.rwc.Flush()
+			loge.Debugf(nil, "-- send: %v", msg)
 		case msg := <-chMsgIncoming:
-			loge.Infof(nil, "message incoming: %v", msg)
 			if impl.messageHelper.IsPingMessage(msg) {
 				fnSendPong(msg)
 			} else if impl.messageHelper.IsPongMessage(msg) {

@@ -4,6 +4,8 @@ import "io"
 
 type Message interface {
 	Bytes() []byte
+	ID() string
+	GossipFlag() bool
 }
 
 type MessageArrivedObserver interface {

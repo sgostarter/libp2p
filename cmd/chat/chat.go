@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jiuzhou-zhao/go-fundamental/loge"
+	uuid "github.com/satori/go.uuid"
 	"github.com/sgostarter/liblog"
 	"github.com/sgostarter/libp2p/pkg/peer"
 )
@@ -21,17 +22,31 @@ import (
 //
 //
 type baseMessage struct {
-	ID   byte
-	Text string
+	MsgID byte
+	Text  string
+	UUID  string
 }
 
 func (msg *baseMessage) Bytes() []byte {
 	var buf bytes.Buffer
-	buf.WriteByte(msg.ID)
-	_ = gob.NewEncoder(&buf).Encode(msg)
+	buf.WriteByte(msg.MsgID)
+
+	md, _ := json.Marshal(msg)
 	d := make([]byte, 1024)
 	copy(d, buf.Bytes())
+	copy(d[1:], md)
 	return d
+}
+
+func (msg *baseMessage) ID() string {
+	if msg.UUID == "" {
+		msg.UUID = uuid.NewV4().String()
+	}
+	return fmt.Sprintf("%d_%s", msg.MsgID, msg.UUID)
+}
+
+func (msg *baseMessage) GossipFlag() bool {
+	return false
 }
 
 type pingMessage struct {
@@ -46,15 +61,53 @@ type textMessage struct {
 	baseMessage
 }
 
+type nickNameSetMessage struct {
+	baseMessage
+	PeerID   string
+	NickName string
+}
+
+func (msg *nickNameSetMessage) GossipFlag() bool {
+	return true
+}
+
+func (msg *nickNameSetMessage) Bytes() []byte {
+	var buf bytes.Buffer
+	buf.WriteByte(msg.MsgID)
+
+	md, _ := json.Marshal(msg)
+	d := make([]byte, 1024)
+	copy(d, buf.Bytes())
+	copy(d[1:], md)
+	return d
+}
+
 //
 //
 //
 type messageArrivedObserver struct {
+	nickNames map[string]string
+}
+
+func newMessageArrivedObserver() *messageArrivedObserver {
+	return &messageArrivedObserver{
+		nickNames: make(map[string]string),
+	}
+}
+
+func (ob *messageArrivedObserver) getNickName(peerID string) string {
+	if nickName, ok := ob.nickNames[peerID]; ok {
+		return nickName
+	}
+	return peerID
 }
 
 func (ob *messageArrivedObserver) OnDataArrived(peerID string, msg peer.Message) {
-	textMsg := msg.(*textMessage)
-	fmt.Printf("%v talk to me: %v\n", peerID, textMsg.Text)
+	if textMsg, ok := msg.(*textMessage); ok {
+		fmt.Printf("%v talk to me: %v\n", ob.getNickName(peerID), textMsg.Text)
+	} else if nickNameSetMsg, ok := msg.(*nickNameSetMessage); ok {
+		ob.nickNames[nickNameSetMsg.PeerID] = nickNameSetMsg.NickName
+	}
 }
 
 type messageHelper struct {
@@ -75,7 +128,8 @@ func (mh *messageHelper) ReadMessage(reader io.Reader) (msg peer.Message, err er
 
 	if id == 0x01 {
 		var ping pingMessage
-		err = gob.NewDecoder(r).Decode(&ping)
+		err = json.NewDecoder(r).Decode(&ping)
+		// err = gob.NewDecoder(r).Decode(&ping)
 		if err != nil {
 			return
 		}
@@ -85,7 +139,8 @@ func (mh *messageHelper) ReadMessage(reader io.Reader) (msg peer.Message, err er
 
 	if id == 0x02 {
 		var pong pongMessage
-		err = gob.NewDecoder(r).Decode(&pong)
+		err = json.NewDecoder(r).Decode(&pong)
+		// err = gob.NewDecoder(r).Decode(&pong)
 		if err != nil {
 			return
 		}
@@ -95,11 +150,23 @@ func (mh *messageHelper) ReadMessage(reader io.Reader) (msg peer.Message, err er
 
 	if id == 0x03 {
 		var text textMessage
-		err = gob.NewDecoder(r).Decode(&text)
+		err = json.NewDecoder(r).Decode(&text)
+		// err = gob.NewDecoder(r).Decode(&text)
 		if err != nil {
 			return
 		}
 		msg = &text
+		return
+	}
+
+	if id == 0x04 {
+		var nickName nickNameSetMessage
+		err = json.NewDecoder(r).Decode(&nickName)
+		// err = gob.NewDecoder(r).Decode(&nickName)
+		if err != nil {
+			return
+		}
+		msg = &nickName
 		return
 	}
 
@@ -111,8 +178,8 @@ func (mh *messageHelper) ReadMessage(reader io.Reader) (msg peer.Message, err er
 func (mh *messageHelper) CreatePingMessage(peerID string) (peer.Message, error) {
 	return &pingMessage{
 		baseMessage: baseMessage{
-			ID:   0x01,
-			Text: "PING",
+			MsgID: 0x01,
+			Text:  "PING",
 		},
 	}, nil
 }
@@ -120,8 +187,8 @@ func (mh *messageHelper) CreatePingMessage(peerID string) (peer.Message, error) 
 func (mh *messageHelper) CreatePongMessage(pMsg peer.Message) (peer.Message, error) {
 	return &pongMessage{
 		baseMessage: baseMessage{
-			ID:   0x02,
-			Text: "PONG",
+			MsgID: 0x02,
+			Text:  "PONG",
 		},
 	}, nil
 }
@@ -138,7 +205,7 @@ func (mh *messageHelper) IsPongMessage(pMsg peer.Message) bool {
 
 func main() {
 	var port int
-	flag.IntVar(&port, "port", 5000, "port")
+	flag.IntVar(&port, "port", 0, "port")
 	flag.Parse()
 
 	logger, err := liblog.NewZapLogger()
@@ -147,9 +214,10 @@ func main() {
 	}
 	loge.SetGlobalLogger(loge.NewLogger(logger))
 
+	ob := newMessageArrivedObserver()
 	cfg := peer.Config{
 		P2PConfig: peer.P2PConfig{
-			AdvertiseNameSpace: "chat_demo_4zjz",
+			AdvertiseNameSpace: "chat_demo_4zjz12",
 			BootstrapPeers:     nil,
 			ProtocolID:         "chat.chat.chat",
 			ListenPort:         port,
@@ -157,7 +225,7 @@ func main() {
 			KeepAliveDuration:  time.Minute,
 		},
 		MessageConfig: peer.MessageConfig{
-			MessageArrivedOb: &messageArrivedObserver{},
+			MessageArrivedOb: ob,
 			MessageHelper:    &messageHelper{},
 		},
 	}
@@ -190,6 +258,18 @@ func main() {
 			})
 		case "print":
 			fmt.Println("my host id is ", peersProxy.GetID())
+		case "nickname":
+			fmt.Print("enter your nickName:> ")
+			nickName := fnReadString(stdReader)
+			peersProxy.DoRequest("", &nickNameSetMessage{
+				baseMessage: baseMessage{
+					MsgID: 0x04,
+					Text:  "NickName",
+				},
+				PeerID:   peersProxy.GetID(),
+				NickName: nickName,
+			})
+			ob.nickNames[peersProxy.GetID()] = nickName
 		default:
 			var text, receiver string
 			n, err := fmt.Sscanf(v, "send %s to %s", &text, &receiver)
@@ -203,8 +283,8 @@ func main() {
 				receiver = ""
 			}
 			peersProxy.DoRequest(receiver, &textMessage{baseMessage{
-				ID:   0x03,
-				Text: text,
+				MsgID: 0x03,
+				Text:  text,
 			}})
 		}
 	}
